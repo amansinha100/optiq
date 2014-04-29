@@ -22,6 +22,7 @@ import net.hydromatic.optiq.impl.java.ReflectiveSchema;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.sql.Connection;
@@ -30,25 +31,25 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Iterator;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.hamcrest.CoreMatchers.*;
+import static org.junit.Assert.*;
 
 /**
  * Test cases to check that necessary information from underlying exceptions
- * is correctly propagated via SQLExceptions.
+ * is correctly propagated via {@link SQLException}s.
  */
 public class ExceptionMessageTest {
-
   private Connection conn;
 
   /**
    * Simple reflective schema that provides valid and invalid entries.
    */
+  @SuppressWarnings("UnusedDeclaration")
   public static class TestSchema {
-    public Entry[] entries = new Entry[]{
+    public Entry[] entries = {
       new Entry(1, "name1"),
-      new Entry(2, "name2")};
+      new Entry(2, "name2")
+    };
 
     public Iterable<Entry> badEntries = new Iterable<Entry>() {
       public Iterator<Entry> iterator() {
@@ -58,7 +59,7 @@ public class ExceptionMessageTest {
   }
 
   /**
-   * Entries made available in the relfective TestSchema.
+   * Entries made available in the reflective TestSchema.
    */
   public static class Entry {
     public int id;
@@ -95,56 +96,54 @@ public class ExceptionMessageTest {
     }
   }
 
-  @Test
-  public void testValidQuery() throws SQLException {
+  @Test public void testValidQuery() throws SQLException {
     // Just ensure that we're actually dealing with a valid connection
     // to be sure that the results of the other tests can be trusted
     runQuery("select * from \"entries\"");
   }
 
-  @Test
-  public void testNonSqlException() throws SQLException {
+  @Test public void testNonSqlException() throws SQLException {
     try {
       runQuery("select * from \"badEntries\"");
       fail("Query badEntries should result in an exception");
     } catch (SQLException e) {
-      assertEquals(
-        "exception while executing query: Can't iterate over badEntries",
-        e.getMessage());
+      assertThat(e.getMessage(),
+          equalTo(
+              "exception while executing query: Can't iterate over badEntries"));
     }
   }
 
-  @Test
-  public void testSyntaxError() {
+  @Test public void testSyntaxError() {
     try {
       runQuery("invalid sql");
       fail("Query should fail");
     } catch (SQLException e) {
-      assertEquals(
-        "error while executing SQL \"invalid sql\": parse failed",
-        e.getMessage());
+      assertThat(e.getMessage(),
+          equalTo("error while executing SQL \"invalid sql\": parse failed"));
     }
   }
 
-  @Test
-  public void testSemanticError() {
+  @Ignore
+  @Test public void testSemanticError() {
     try {
       runQuery("select \"name\" - \"id\" from \"entries\"");
       fail("Query with semantic error should fail");
     } catch (SQLException e) {
-      assertTrue(
-        e.getMessage().contains("Cannot apply '-' to arguments"));
+      assertThat(e.getMessage(),
+          containsString("Cannot apply '-' to arguments"));
     }
   }
 
-  @Test
-  public void testNonexistantTable() {
+  @Ignore
+  @Test public void testNonexistentTable() {
     try {
-      runQuery("select name from \"nonexistanttable\"");
+      runQuery("select name from \"nonexistentTable\"");
       fail("Query should fail");
     } catch (SQLException e) {
-      assertTrue(e.getMessage().contains("Table 'nonexistanttable' not found"));
+      assertThat(e.getMessage(),
+          containsString("Table 'nonexistentTable' not found"));
     }
   }
-
 }
+
+// End ExceptionMessageTest.java
