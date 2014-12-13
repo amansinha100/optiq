@@ -315,11 +315,12 @@ public abstract class JoinRelBase extends AbstractRelNode {
     List<String> nameList = new ArrayList<String>();
     List<RelDataType> typeList = new ArrayList<RelDataType>();
 
-    // use a hashset to keep track of the field names; this is needed
-    // to ensure that the contains() call to check for name uniqueness
-    // runs in constant time; otherwise, if the number of fields is large,
-    // doing a contains() on a list can be expensive
-    HashSet<String> uniqueNameList = new HashSet<String>();
+    // We need to keep track of the field name uniqueness; we could
+    // have used a HashSet for better performance but HashSet does
+    // not allow passing in a comparator, hence use a TreeSet and
+    // pass case-insensitive comparator (pending CALCITE-528 fix).
+    TreeSet<String> uniqueNameList = new
+        TreeSet<String>(String.CASE_INSENSITIVE_ORDER);
     addFields(systemFieldList, typeList, nameList, uniqueNameList);
     addFields(leftType.getFieldList(), typeList, nameList, uniqueNameList);
     if (rightType != null) {
@@ -337,7 +338,7 @@ public abstract class JoinRelBase extends AbstractRelNode {
       List<RelDataTypeField> fieldList,
       List<RelDataType> typeList,
       List<String> nameList,
-      HashSet<String> uniqueNameList) {
+      TreeSet<String> uniqueNameList) {
     for (RelDataTypeField field : fieldList) {
       String name = field.getName();
 
