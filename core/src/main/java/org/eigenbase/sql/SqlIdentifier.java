@@ -247,6 +247,9 @@ public class SqlIdentifier extends SqlNode {
   }
 
   public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
+    if (isStar()) {
+      return SqlMonotonicity.NOT_MONOTONIC;
+    }
     // First check for builtin functions which don't have parentheses,
     // like "LOCALTIME".
     final SqlValidator validator = scope.getValidator();
